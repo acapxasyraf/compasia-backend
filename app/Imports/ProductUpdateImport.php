@@ -11,24 +11,25 @@ use Maatwebsite\Excel\Row;
 class ProductUpdateImport implements OnEachRow, WithHeadingRow
 {
     /**
-    * @param Row $row
-    */
+     * @param Row $row
+     */
     public function onRow(Row $row)
     {
         $rowData = $row->toArray();
-        
+
         // Expected columns in Excel: product_id, status (Sold/Buy), types, brand, model, capacity
         // Note: Maatwebsite Excel converts headers to snake_case by default (e.g., 'Product ID' -> 'product_id')
-        
-        $productId = $rowData['product_id'] ?? null;
-        $status = $rowData['status'] ?? null;
-        
+
+        $productId = isset($rowData['product_id']) ? trim($rowData['product_id']) : null;
+        $status = isset($rowData['status']) ? trim($rowData['status']) : null;
+
         if (!$productId || !$status) {
             return;
         }
 
-        // Default quantity is 1 as per user requirement
-        $quantityChange = 1;
+        // Default quantity is 1 (each row is one transaction)
+        // If a 'quantity' column exists in the upload, use it, otherwise default to 1.
+        $quantityChange = isset($rowData['quantity']) && is_numeric($rowData['quantity']) ? (int)$rowData['quantity'] : 1;
 
         $product = Product::where('product_id', $productId)->first();
 
@@ -38,7 +39,7 @@ class ProductUpdateImport implements OnEachRow, WithHeadingRow
             $brand = $rowData['brand'] ?? 'Unknown';
             $model = $rowData['model'] ?? 'Unknown';
             $capacity = $rowData['capacity'] ?? 'Unknown';
-            
+
             $product = new Product();
             $product->product_id = $productId;
             $product->type = $type;
